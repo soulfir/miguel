@@ -61,6 +61,17 @@ def _git_commit_batch(batch_num: int, summary: str) -> None:
         _git("commit", "-m", f"Batch {batch_num}: {summary}")
 
 
+def _git_push() -> None:
+    """Push to remote if one is configured."""
+    result = _git("remote")
+    if result.stdout.strip():
+        push_result = _git("push")
+        if push_result.returncode == 0:
+            print_success("Pushed to remote.")
+        else:
+            print_warning(f"Push failed: {push_result.stderr.strip()}")
+
+
 def _git_check_scope() -> list[str]:
     """Check that only files inside miguel/agent/ were modified."""
     result = _git("diff", "--name-only", "HEAD")
@@ -204,6 +215,10 @@ def run_improvement_loop(n_batches: int) -> None:
             _git_rollback()
             print_warning("Rolled back to previous state.")
             failed += 1
+
+    # Push all batch commits to remote
+    if succeeded > 0:
+        _git_push()
 
     console.print()
     console.rule("[bold]Summary[/bold]", style="cyan")
