@@ -30,6 +30,7 @@ dependencies = [
     "pandas",
     "openpyxl",
     "Pillow",
+    "requests",
 ]
 
 [project.scripts]
