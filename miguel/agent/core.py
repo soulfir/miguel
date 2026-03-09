@@ -26,6 +26,10 @@ from miguel.agent.tools.prompt_tools import (
     get_prompt_sections,
     modify_prompt_section,
 )
+from miguel.agent.tools.tool_creator import (
+    create_tool,
+    add_functions_to_tool,
+)
 
 
 def create_agent() -> Agent:
@@ -48,6 +52,8 @@ def create_agent() -> Agent:
             log_improvement,
             get_prompt_sections,
             modify_prompt_section,
+            create_tool,
+            add_functions_to_tool,
         ],
         markdown=True,
     )

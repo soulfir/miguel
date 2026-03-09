@@ -36,10 +36,10 @@
       "title": "Create new custom tools",
       "description": "Agent can write new tool functions and integrate them into its own toolset",
       "priority": 4,
-      "status": "unchecked",
+      "status": "checked",
       "category": "self-improvement",
       "added_at": "2026-03-09T00:00:00",
-      "completed_at": null
+      "completed_at": "2026-03-09T12:06:12.315863+00:00"
     },
     {
       "id": "cap-005",

@@ -18,7 +18,8 @@ agent/
     ├── __init__.py      # Empty — makes tools/ a Python package
     ├── capability_tools.py  # Tools for managing the capability checklist
     ├── prompt_tools.py      # Tools for safely inspecting and modifying the system prompt
-    └── self_tools.py    # Tools for self-inspection and logging improvements
+    ├── self_tools.py    # Tools for self-inspection and logging improvements
+    └── tool_creator.py  # Tools for creating new tools and auto-registering them
 ```
 
 ## Key Components
@@ -27,7 +28,7 @@ agent/
 - `create_agent()` — Factory function that instantiates an `agno.agent.Agent`
 - Wires together: model, instructions, and all tools
 - External tools: `PythonTools` (run code), `ShellTools` (run commands), `LocalFileSystemTools` (read/write files)
-- Custom tools: capability management + self-inspection + prompt modification
+- Custom tools: capability management + self-inspection + prompt modification + tool creation
 
 ### prompts.py — The Brain
 - `get_system_prompt()` returns a list of instruction strings
@@ -61,14 +62,27 @@ agent/
   - Validates generated Python syntax before writing — prevents breaking prompts.py
   - Handles f-strings containing `{AGENT_DIR}` correctly
 
+### tools/tool_creator.py — Tool Factory
+- `create_tool(file_name, code, register)` — Create a new tool file in tools/ and auto-register in core.py
+  - Validates Python syntax before writing
+  - Ensures all public functions have docstrings (required by Agno)
+  - Automatically adds import statement and tool registration to core.py
+  - Validates core.py syntax after modification — rolls back if broken
+- `add_functions_to_tool(file_name, new_code)` — Append new functions to an existing tool file
+  - Checks for naming conflicts with existing functions
+  - Validates combined file syntax
+  - Auto-registers new functions in core.py
+
 ## Data Flow
 1. User message → `create_agent()` builds Agent → Claude processes with system prompt
 2. Claude decides which tools to call → tools execute → results fed back
 3. For self-improvement: read checklist → implement change → write files → mark done → log
 4. For prompt modification: parse sections → modify → validate syntax → write → confirm
+5. For tool creation: write tool file → validate syntax → update core.py imports → register tools
 
 ## Security Boundaries
 - `read_own_file` refuses to read outside agent/
 - `LocalFileSystemTools` is scoped to agent/ directory
 - `modify_prompt_section` validates syntax before writing (prevents self-corruption)
+- `create_tool` validates syntax and docstrings before writing, validates core.py after modification
 - System prompt explicitly forbids modifying files outside agent/
