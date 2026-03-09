@@ -1,6 +1,7 @@
 """Miguel CLI entry point. PROTECTED — the agent cannot modify this file."""
 
 import json
+import uuid
 
 from dotenv import load_dotenv
 
@@ -74,6 +75,7 @@ def interactive_mode() -> None:
         print_error(f"Failed to load agent: {e}")
         raise typer.Exit(1)
 
+    session_id = f"interactive-{uuid.uuid4().hex[:8]}"
     print_success("Agent loaded. Ready.\n")
 
     while True:
@@ -121,7 +123,7 @@ def interactive_mode() -> None:
 
         # Send to agent
         try:
-            stream = agent.run(user_input, stream=True, stream_events=True)
+            stream = agent.run(user_input, stream=True, stream_events=True, session_id=session_id)
             render_stream(stream)
         except Exception as e:
             print_error(f"Error: {e}")

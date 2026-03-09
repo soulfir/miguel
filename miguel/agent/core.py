@@ -71,4 +71,6 @@ def create_agent() -> Agent:
             health_check,
         ],
         markdown=True,
+        add_history_to_context=True,
+        num_history_runs=20,
     )
