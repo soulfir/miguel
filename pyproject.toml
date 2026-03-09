@@ -9,6 +9,8 @@ dependencies = [
     "typer[all]",
     "rich",
     "python-dotenv",
+    "sqlalchemy",
+    "aiosqlite",
 ]
 
 [project.scripts]

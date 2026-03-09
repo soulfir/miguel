@@ -6,6 +6,7 @@ from agno.tools.python import PythonTools
 from agno.tools.shell import ShellTools
 from pathlib import Path
 
+from agno.db.sqlite import SqliteDb
 from agno.tools.local_file_system import LocalFileSystemTools
 
 from miguel.agent.config import MODEL_ID
@@ -71,6 +72,7 @@ def create_agent() -> Agent:
             health_check,
         ],
         markdown=True,
+        db=SqliteDb(db_file=str(Path(__file__).parent / "miguel.db")),
         add_history_to_context=True,
         num_history_runs=20,
     )

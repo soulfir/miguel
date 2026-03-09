@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Database
+*.db
+
 # Python
 __pycache__/
 *.pyc
