@@ -12,6 +12,7 @@ dependencies = [
     "sqlalchemy",
     "aiosqlite",
     "httpx",
+    "duckduckgo-search",
 ]
 
 [project.scripts]

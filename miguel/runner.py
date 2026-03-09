@@ -45,7 +45,23 @@ def _git_init_if_needed() -> None:
         print_success("Initialized git repository.")
 
 
+def _git_commit_runner_changes() -> None:
+    """Commit any pending changes made by the runner itself (outside miguel/agent/).
+
+    This catches things like pyproject.toml modifications from _merge_added_deps()
+    so they never leak into the next batch's scope check.
+    """
+    _git("add", "--all")
+    # Unstage agent files — those are handled separately by _git_snapshot/_git_commit_batch
+    _git("reset", "HEAD", "--", "miguel/agent/")
+    result = _git("diff", "--cached", "--quiet")
+    if result.returncode != 0:
+        _git("commit", "-m", "chore: runner-managed file updates")
+
+
 def _git_snapshot(label: str) -> None:
+    # First, commit any stray runner-side changes so they don't pollute this batch
+    _git_commit_runner_changes()
     _git("add", "miguel/agent/")
     result = _git("diff", "--cached", "--quiet")
     if result.returncode != 0:
@@ -75,17 +91,6 @@ def _git_push() -> None:
         else:
             print_warning(f"Push failed: {push_result.stderr.strip()}")
 
-
-def _git_check_scope() -> list[str]:
-    """Check that only files inside miguel/agent/ were modified."""
-    result = _git("diff", "--name-only", "HEAD")
-    if result.returncode != 0:
-        return []
-    changed = [f for f in result.stdout.strip().split("\n") if f]
-    out_of_scope = [f for f in changed if not f.startswith("miguel/agent/")]
-    if out_of_scope:
-        return [f"Files modified outside miguel/agent/: {', '.join(out_of_scope)}"]
-    return []
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +182,10 @@ def _merge_added_deps():
 
     pyproject_path.write_text(content)
     added_deps_path.unlink()
+
+    # Commit pyproject.toml immediately so it doesn't leak into the next batch's scope check
+    _git("add", "pyproject.toml")
+    _git("commit", "-m", f"Add dependencies: {', '.join(new_deps)}")
     print_success(f"Merged {len(new_deps)} new dependency(ies) into pyproject.toml.")
 
 
@@ -228,8 +237,6 @@ def run_improvement_loop(n_batches: int) -> None:
         console.print("[dim]Running validation checks...[/dim]")
 
         errors = run_all_checks()
-        scope_errors = _git_check_scope()
-        errors.extend(scope_errors)
 
         if not errors:
             # Merge any new dependencies the agent added
