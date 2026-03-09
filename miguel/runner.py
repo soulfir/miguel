@@ -120,7 +120,13 @@ def _build_meta_prompt(batch_num: int) -> str:
     if len(improvements) > 3000:
         improvements = "...(truncated)...\n" + improvements[-3000:]
 
+    agent_dir = str(AGENT_DIR.resolve())
+
     return f"""You are running improvement batch #{batch_num}.
+
+YOUR AGENT DIRECTORY (absolute path): {agent_dir}
+All file operations MUST use absolute paths under this directory.
+Use write_file for writing files. NEVER use save_to_file_and_run to write files.
 
 YOUR CURRENT SOURCE CODE (agent/core.py):
 ```python
@@ -141,9 +147,10 @@ RECENT IMPROVEMENTS:
 INSTRUCTIONS:
 1. Use get_next_capability to find the highest-priority unchecked capability
 2. If ALL_CHECKED: use add_capability to create 3 new capabilities first, then pick one
-3. Implement the capability by modifying your files in agent/
+3. Implement the capability by modifying your files in agent/ using write_file with ABSOLUTE paths
 4. Use check_capability to mark it as completed
 5. Use log_improvement to record what you did and which files you changed
+6. If ANY tool call fails: diagnose the root cause, fix it, do NOT retry the same thing
 
 Make exactly ONE focused improvement this batch. Be precise and ensure valid Python syntax."""
 
