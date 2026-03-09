@@ -30,6 +30,12 @@ from miguel.agent.tools.tool_creator import (
     create_tool,
     add_functions_to_tool,
 )
+from miguel.agent.tools.recovery_tools import (
+    recover_backup,
+    list_recovery_points,
+    validate_agent_file,
+    health_check,
+)
 
 
 def create_agent() -> Agent:
@@ -54,6 +60,10 @@ def create_agent() -> Agent:
             modify_prompt_section,
             create_tool,
             add_functions_to_tool,
+            recover_backup,
+            list_recovery_points,
+            validate_agent_file,
+            health_check,
         ],
         markdown=True,
     )
