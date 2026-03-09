@@ -143,6 +143,7 @@ INSTRUCTIONS:
 4. Use check_capability to mark it as completed
 5. Use log_improvement to record what you did and which files you changed
 6. If ANY tool call fails: diagnose the root cause, fix it, do NOT retry the same thing
+7. Update agent/README.md to reflect your current state (capabilities, tools, features). The runner will copy it to the project root for GitHub.
 
 Make exactly ONE focused improvement this batch. Be precise and ensure valid Python syntax."""
 
@@ -187,6 +188,21 @@ def _merge_added_deps():
     _git("add", "pyproject.toml")
     _git("commit", "-m", f"Add dependencies: {', '.join(new_deps)}")
     print_success(f"Merged {len(new_deps)} new dependency(ies) into pyproject.toml.")
+
+
+def _merge_readme():
+    """Copy the agent's README to the project root so GitHub shows the latest version."""
+    agent_readme = AGENT_DIR / "README.md"
+    if not agent_readme.exists():
+        return
+    project_readme = PROJECT_DIR / "README.md"
+    content = agent_readme.read_text()
+    if project_readme.exists() and project_readme.read_text() == content:
+        return
+    project_readme.write_text(content)
+    _git("add", "README.md")
+    _git("commit", "-m", "Update README to reflect current capabilities")
+    print_success("Updated README.md from agent.")
 
 
 def run_improvement_loop(n_batches: int) -> None:
@@ -239,8 +255,9 @@ def run_improvement_loop(n_batches: int) -> None:
         errors = run_all_checks()
 
         if not errors:
-            # Merge any new dependencies the agent added
+            # Merge agent-side changes into project-root files
             _merge_added_deps()
+            _merge_readme()
 
             # Extract summary from improvements.md (last entry)
             improvements_text = _read_file_safe(AGENT_DIR / "improvements.md")
