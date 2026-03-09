@@ -1,12 +1,11 @@
 """Outer improvement loop for Miguel. PROTECTED — the agent cannot modify this file."""
 
-import importlib
 import re
 import subprocess
-import sys
-import time
 from pathlib import Path
 
+from miguel.client import reload_agent, stream_from_container
+from miguel.container import ensure_container
 from miguel.display import (
     console,
     print_batch_header,
@@ -20,6 +19,9 @@ from miguel.tests.test_agent_health import run_all_checks
 MIGUEL_PKG_DIR = Path(__file__).parent
 AGENT_DIR = MIGUEL_PKG_DIR / "agent"
 PROJECT_DIR = MIGUEL_PKG_DIR.parent
+
+# Container path the agent sees inside Docker
+CONTAINER_AGENT_DIR = "/app/miguel/agent"
 
 
 # ---------------------------------------------------------------------------
@@ -87,21 +89,6 @@ def _git_check_scope() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Agent loading
-# ---------------------------------------------------------------------------
-
-def _load_agent_fresh():
-    """Reload agent modules and create a fresh agent instance."""
-    modules_to_clear = [key for key in sys.modules if key.startswith("miguel.agent")]
-    for mod in modules_to_clear:
-        del sys.modules[mod]
-
-    import miguel.agent.core
-    importlib.reload(miguel.agent.core)
-    return miguel.agent.core.create_agent()
-
-
-# ---------------------------------------------------------------------------
 # Context building
 # ---------------------------------------------------------------------------
 
@@ -122,11 +109,9 @@ def _build_meta_prompt(batch_num: int) -> str:
     if len(improvements) > 3000:
         improvements = "...(truncated)...\n" + improvements[-3000:]
 
-    agent_dir = str(AGENT_DIR.resolve())
-
     return f"""You are running improvement batch #{batch_num}.
 
-YOUR AGENT DIRECTORY (absolute path): {agent_dir}
+YOUR AGENT DIRECTORY (absolute path): {CONTAINER_AGENT_DIR}
 All file operations MUST use absolute paths under this directory.
 Use write_file for writing files. NEVER use save_to_file_and_run to write files.
 
@@ -161,9 +146,51 @@ Make exactly ONE focused improvement this batch. Be precise and ensure valid Pyt
 # Main loop
 # ---------------------------------------------------------------------------
 
+def _merge_added_deps():
+    """If the agent added dependencies via dep_tools, merge them into pyproject.toml."""
+    added_deps_path = AGENT_DIR / "added_deps.txt"
+    if not added_deps_path.exists():
+        return
+
+    new_deps = [d.strip() for d in added_deps_path.read_text().splitlines() if d.strip()]
+    if not new_deps:
+        added_deps_path.unlink()
+        return
+
+    pyproject_path = PROJECT_DIR / "pyproject.toml"
+    content = pyproject_path.read_text()
+
+    for dep in new_deps:
+        # Check if already present (normalize hyphens/underscores)
+        base_name = dep.split("[")[0]
+        normalized = base_name.lower().replace("-", "[-_]").replace("_", "[-_]")
+        if re.search(rf'"{normalized}', content, re.IGNORECASE):
+            continue
+
+        # Insert after the last dependency line
+        lines = content.split("\n")
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip().startswith('"') and lines[i].strip().endswith('",'):
+                lines.insert(i + 1, f'    "{dep}",')
+                content = "\n".join(lines)
+                break
+
+    pyproject_path.write_text(content)
+    added_deps_path.unlink()
+    print_success(f"Merged {len(new_deps)} new dependency(ies) into pyproject.toml.")
+
+
 def run_improvement_loop(n_batches: int) -> None:
     """Run n improvement batches."""
     _git_init_if_needed()
+
+    # Ensure Docker container is running
+    console.print("[dim]Starting Docker container...[/dim]")
+    if not ensure_container():
+        print_error("Docker container failed to start. Is Docker running?")
+        return
+
+    console.print("[dim]Running agent in Docker container.[/dim]")
 
     succeeded = 0
     failed = 0
@@ -174,11 +201,11 @@ def run_improvement_loop(n_batches: int) -> None:
         # 1. Snapshot current state
         _git_snapshot(f"pre-batch-{batch_num}")
 
-        # 2. Load fresh agent
+        # 2. Reload agent in container
         try:
-            agent = _load_agent_fresh()
+            reload_agent()
         except Exception as e:
-            print_error(f"Failed to load agent: {e}")
+            print_error(f"Failed to reload agent: {e}")
             _git_rollback()
             failed += 1
             continue
@@ -188,7 +215,7 @@ def run_improvement_loop(n_batches: int) -> None:
 
         # 4. Run agent with streaming
         try:
-            stream = agent.run(meta_prompt, stream=True, stream_events=True)
+            stream = stream_from_container(meta_prompt)
             render_stream(stream)
         except Exception as e:
             print_error(f"Agent execution failed: {e}")
@@ -205,6 +232,9 @@ def run_improvement_loop(n_batches: int) -> None:
         errors.extend(scope_errors)
 
         if not errors:
+            # Merge any new dependencies the agent added
+            _merge_added_deps()
+
             # Extract summary from improvements.md (last entry)
             improvements_text = _read_file_safe(AGENT_DIR / "improvements.md")
             lines = improvements_text.strip().split("\n")

@@ -1,0 +1,15 @@
+services:
+  miguel:
+    build: .
+    volumes:
+      # Full project read-only (needed for Python imports)
+      - .:/app:ro
+      # Agent directory writable (overrides the ro mount above)
+      - ./miguel/agent:/app/miguel/agent:rw
+      # User files — shared workspace for users to exchange files with Miguel
+      - ./user_files:/app/user_files:rw
+    env_file:
+      - .env
+    ports:
+      - "8420:8420"
+    restart: unless-stopped

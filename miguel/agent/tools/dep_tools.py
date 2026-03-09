@@ -7,17 +7,21 @@ from pathlib import Path
 
 from miguel.agent.tools.error_utils import safe_tool
 
+AGENT_DIR = Path(__file__).parent.parent
+ADDED_DEPS_PATH = AGENT_DIR / "added_deps.txt"
+
+# pyproject.toml may be read-only in Docker; used only for reading
 PROJECT_DIR = Path(__file__).parent.parent.parent.parent
 PYPROJECT_PATH = PROJECT_DIR / "pyproject.toml"
 
 
 @safe_tool
 def add_dependency(package_name: str) -> str:
-    """Install a Python package and add it to pyproject.toml dependencies.
+    """Install a Python package and record it for persistence.
 
     Use this when you need a new library (e.g. 'duckduckgo-search', 'requests').
-    The package is pip-installed immediately and added to pyproject.toml so it
-    persists across installs.
+    The package is pip-installed immediately. It is also recorded so the host-side
+    runner can add it to pyproject.toml after validation.
 
     Args:
         package_name: PyPI package name (e.g. 'duckduckgo-search', 'requests').
@@ -41,43 +45,41 @@ def add_dependency(package_name: str) -> str:
     if result.returncode != 0:
         return f"Error: pip install failed:\n{result.stderr.strip()}"
 
-    # 2. Add to pyproject.toml
-    content = PYPROJECT_PATH.read_text()
+    # 2. Record the dependency for host-side merging into pyproject.toml
+    # Check if already recorded
+    existing = set()
+    if ADDED_DEPS_PATH.exists():
+        existing = {d.strip().lower() for d in ADDED_DEPS_PATH.read_text().splitlines() if d.strip()}
 
-    # Check if already in dependencies
-    # Normalize: 'duckduckgo-search' matches 'duckduckgo-search' or 'duckduckgo_search'
-    base_name = package_name.split("[")[0]  # strip extras like [all]
-    normalized = base_name.lower().replace("-", "[-_]").replace("_", "[-_]")
-    if re.search(rf'"{normalized}', content, re.IGNORECASE):
-        return f"Package '{package_name}' already in pyproject.toml. Installed/updated successfully."
+    base_name = package_name.split("[")[0].lower()
+    if base_name not in existing:
+        with open(ADDED_DEPS_PATH, "a") as f:
+            f.write(f"{package_name}\n")
 
-    # Insert before the closing bracket of dependencies list
-    content = content.replace(
-        '    "python-dotenv",\n',
-        f'    "python-dotenv",\n    "{package_name}",\n',
-    )
-
-    # Fallback: find the last dependency line and add after it
-    if f'"{package_name}"' not in content:
-        lines = content.split("\n")
-        for i in range(len(lines) - 1, -1, -1):
-            if lines[i].strip().startswith('"') and lines[i].strip().endswith('",'):
-                lines.insert(i + 1, f'    "{package_name}",')
-                content = "\n".join(lines)
-                break
-
-    PYPROJECT_PATH.write_text(content)
-
-    return f"Installed '{package_name}' and added to pyproject.toml."
+    return f"Installed '{package_name}'. It will be added to pyproject.toml after validation."
 
 
 @safe_tool
 def list_dependencies() -> str:
     """List all current dependencies from pyproject.toml."""
-    content = PYPROJECT_PATH.read_text()
+    try:
+        content = PYPROJECT_PATH.read_text()
+    except FileNotFoundError:
+        return "pyproject.toml not accessible (may be read-only in Docker)."
+
     # Extract dependencies list
     match = re.search(r'dependencies\s*=\s*\[(.*?)\]', content, re.DOTALL)
     if not match:
         return "Could not find dependencies in pyproject.toml."
     deps = re.findall(r'"([^"]+)"', match.group(1))
-    return "\n".join(f"- {d}" for d in deps) if deps else "No dependencies found."
+
+    # Also show pending deps
+    pending = []
+    if ADDED_DEPS_PATH.exists():
+        pending = [d.strip() for d in ADDED_DEPS_PATH.read_text().splitlines() if d.strip()]
+
+    result = "\n".join(f"- {d}" for d in deps) if deps else "No dependencies found."
+    if pending:
+        result += "\n\nPending (will be added after validation):\n"
+        result += "\n".join(f"- {d}" for d in pending)
+    return result

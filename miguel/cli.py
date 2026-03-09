@@ -10,6 +10,8 @@ load_dotenv()
 import typer
 from rich.console import Console
 
+from miguel.client import reload_agent, stream_from_container
+from miguel.container import ensure_container
 from miguel.display import print_banner, print_error, print_success, render_stream
 from miguel.runner import run_improvement_loop
 
@@ -66,17 +68,14 @@ def interactive_mode() -> None:
     """Run Miguel in interactive REPL mode."""
     print_banner()
 
-    # Load agent
-    try:
-        from miguel.agent import create_agent
-
-        agent = create_agent(interactive=True)
-    except Exception as e:
-        print_error(f"Failed to load agent: {e}")
+    console.print("[dim]Starting Docker container...[/dim]")
+    if not ensure_container():
+        print_error("Failed to start Docker container.")
+        print_error("Is Docker running? Run: docker compose up -d")
         raise typer.Exit(1)
+    print_success("Connected to Docker container. Ready.\n")
 
     session_id = f"interactive-{uuid.uuid4().hex[:8]}"
-    print_success("Agent loaded. Ready.\n")
 
     while True:
         try:
@@ -105,17 +104,8 @@ def interactive_mode() -> None:
             parts = user_input.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             run_improvement_loop(n)
-            # Reload agent after improvements
             try:
-                import importlib
-                import sys
-
-                modules_to_clear = [k for k in sys.modules if k.startswith("miguel.agent")]
-                for mod in modules_to_clear:
-                    del sys.modules[mod]
-                from miguel.agent import create_agent
-
-                agent = create_agent(interactive=True)
+                reload_agent()
                 print_success("Agent reloaded after improvements.")
             except Exception as e:
                 print_error(f"Failed to reload agent: {e}")
@@ -123,7 +113,7 @@ def interactive_mode() -> None:
 
         # Send to agent
         try:
-            stream = agent.run(user_input, stream=True, stream_events=True, session_id=session_id)
+            stream = stream_from_container(user_input, session_id=session_id, interactive=True)
             render_stream(stream)
         except Exception as e:
             print_error(f"Error: {e}")

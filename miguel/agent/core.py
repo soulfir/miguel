@@ -9,7 +9,7 @@ from pathlib import Path
 from agno.db.sqlite import SqliteDb
 from agno.tools.local_file_system import LocalFileSystemTools
 
-from miguel.agent.config import MODEL_ID
+from miguel.agent.config import MODEL_ID, USER_FILES_DIR
 from miguel.agent.prompts import get_system_prompt
 from miguel.agent.tools.capability_tools import (
     get_capabilities,
@@ -63,6 +63,7 @@ def create_agent(interactive: bool = False) -> Agent:
             PythonTools(base_dir=Path(__file__).parent),
             ShellTools(base_dir=Path(__file__).parent),
             LocalFileSystemTools(target_directory=str(Path(__file__).parent)),
+            LocalFileSystemTools(target_directory=USER_FILES_DIR),
             get_capabilities,
             get_next_capability,
             check_capability,

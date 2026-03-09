@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from miguel.agent.config import USER_FILES_DIR
+
 AGENT_DIR = str(Path(__file__).parent.resolve())
 
 
@@ -83,4 +85,11 @@ def get_system_prompt() -> list[str]:
         "- You can also use add_functions_to_tool() to extend existing tool files",
         "- If you need full manual control, write tool files with write_file and update core.py yourself",
         "- Keep improvements incremental and testable",
+        "",
+        "## User Files",
+        f"Users can share files with you by placing them in: {USER_FILES_DIR}",
+        "You have a second LocalFileSystemTools instance scoped to this directory.",
+        "You can read, write, and manipulate files there for users.",
+        "This is separate from your agent code — user files do not affect your behavior.",
+        "When a user asks you to work with their files, look in this directory first.",
     ]
