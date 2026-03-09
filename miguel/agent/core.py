@@ -42,7 +42,12 @@ def create_agent() -> Agent:
     """Create and return a configured Miguel agent instance."""
     return Agent(
         name="Miguel",
-        model=Claude(id=MODEL_ID),
+        model=Claude(
+            id=MODEL_ID,
+            retries=5,
+            delay_between_retries=60,
+            exponential_backoff=True,
+        ),
         instructions=get_system_prompt(),
         tools=[
             PythonTools(base_dir=Path(__file__).parent),
