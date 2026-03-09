@@ -26,6 +26,10 @@ dependencies = [
     "aiosqlite",
     "httpx",
     "duckduckgo-search",
+    "pymupdf",
+    "pandas",
+    "openpyxl",
+    "Pillow",
 ]
 
 [project.scripts]
