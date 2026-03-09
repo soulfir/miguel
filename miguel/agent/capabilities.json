@@ -6,10 +6,10 @@
       "title": "Respond to basic questions",
       "description": "Agent can answer simple questions accurately in interactive mode",
       "priority": 1,
-      "status": "unchecked",
+      "status": "checked",
       "category": "core",
       "added_at": "2026-03-09T00:00:00",
-      "completed_at": null
+      "completed_at": "2026-03-09T11:27:14.745321+00:00"
     },
     {
       "id": "cap-002",
