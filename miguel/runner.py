@@ -1,8 +1,10 @@
 """Outer improvement loop for Miguel. PROTECTED — the agent cannot modify this file."""
 
 import importlib
+import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from miguel.display import (

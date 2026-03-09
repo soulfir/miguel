@@ -37,6 +37,10 @@ from miguel.agent.tools.recovery_tools import (
     validate_agent_file,
     health_check,
 )
+from miguel.agent.tools.dep_tools import (
+    add_dependency,
+    list_dependencies,
+)
 
 
 def create_agent(interactive: bool = False) -> Agent:
@@ -75,6 +79,8 @@ def create_agent(interactive: bool = False) -> Agent:
             list_recovery_points,
             validate_agent_file,
             health_check,
+            add_dependency,
+            list_dependencies,
         ],
         markdown=True,
         **(
