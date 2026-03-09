@@ -152,10 +152,30 @@
       "completed_at": "2026-03-09T17:52:26.250111+00:00"
     },
     {
+      "id": "cap-017",
+      "title": "Evolve into an Agno Team with sub-agent delegation",
+      "description": "Refactor Miguel from a single agno.agent.Agent into an agno.team.Team (or equivalent Agno team construct) so Miguel can delegate sub-tasks to specialized sub-agents. Sub-agents get their own fresh context, handle focused work (e.g. 'write this tool file', 'update the README'), and return results to the coordinator. The main Miguel agent becomes the coordinator/orchestrator — it plans, delegates, and assembles. This is the Agno-native way to handle complex tasks without context exhaustion. Modify core.py to create the team structure; sub-agents can share the same model and tools or have focused subsets. Research Agno's team/delegation APIs to find the best approach. This keeps everything within the Agno framework rather than raw API calls.",
+      "priority": 1,
+      "status": "unchecked",
+      "category": "self-generated",
+      "added_at": "2026-03-09T18:30:00.000000+00:00",
+      "completed_at": null
+    },
+    {
+      "id": "cap-018",
+      "title": "Context-aware execution strategy",
+      "description": "Update prompts.py with permanent rules for context management and delegation: (1) When a task is complex, use planning tools to break it into sub-tasks and delegate to sub-agents, (2) Use memory tools to save intermediate results and plans across sub-agent calls, (3) Keep the main agent focused on orchestration — delegate heavy code generation to sub-agents, (4) Write the main implementation code first, then update secondary files (README, architecture, prompts) — never let secondary work crowd out the primary task, (5) Make context-aware delegation a permanent part of every improvement batch. The agent should make this a core part of its self-improvement process so it never exhausts context again.",
+      "priority": 2,
+      "status": "unchecked",
+      "category": "self-generated",
+      "added_at": "2026-03-09T18:30:00.000000+00:00",
+      "completed_at": null
+    },
+    {
       "id": "cap-016",
       "title": "Project scaffolding and code generation",
-      "description": "Add the ability to create full project structures \u2014 generate directory trees, boilerplate files, config files, and starter code for common project types (Python packages, web apps, scripts, etc). Should write files outside the agent directory when the user requests it. Makes Miguel a practical development assistant.",
-      "priority": 6,
+      "description": "Add the ability to create full project structures \u2014 generate directory trees, boilerplate files, config files, and starter code for common project types (Python packages, web apps, scripts, etc). Should write files outside the agent directory when the user requests it. Makes Miguel a practical development assistant. NOTE: Use sub-agent delegation (cap-017) to generate each template in a focused sub-agent to avoid context exhaustion.",
+      "priority": 3,
       "status": "unchecked",
       "category": "self-generated",
       "added_at": "2026-03-09T12:41:56.731192+00:00",

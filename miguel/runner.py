@@ -285,6 +285,19 @@ def run_improvement_loop(n_batches: int) -> None:
         errors = run_all_checks()
 
         if not errors:
+            # Check if the agent actually made changes
+            _git("add", "miguel/agent/")
+            diff_result = _git("diff", "--cached", "--quiet")
+            if diff_result.returncode == 0:
+                # No files changed — agent didn't do anything
+                print_warning(f"Batch {batch_num} produced no changes. Skipping.")
+                _git_rollback()
+                failed += 1
+                continue
+
+            # Unstage so _git_commit_batch can re-stage cleanly
+            _git("reset", "HEAD", "--", "miguel/agent/")
+
             # Merge agent-side changes into project-root files
             _merge_added_deps()
             _merge_readme()
