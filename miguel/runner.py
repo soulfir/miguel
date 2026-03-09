@@ -213,6 +213,7 @@ def run_improvement_loop(n_batches: int) -> None:
                     break
 
             _git_commit_batch(batch_num, summary_line)
+            _git_push()
             print_success(f"Batch {batch_num} succeeded: {summary_line}")
             succeeded += 1
         else:
@@ -222,10 +223,6 @@ def run_improvement_loop(n_batches: int) -> None:
             _git_rollback()
             print_warning("Rolled back to previous state.")
             failed += 1
-
-    # Push all batch commits to remote
-    if succeeded > 0:
-        _git_push()
 
     console.print()
     console.rule("[bold]Summary[/bold]", style="cyan")
