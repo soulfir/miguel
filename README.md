@@ -12,11 +12,11 @@
 
 Miguel is an AI agent that can rewrite itself. Not just generate code for you — it modifies *its own* source code, creates new tools, rewrites its own system prompts, and generates new capabilities it didn't start with.
 
-It began with 10 seed capabilities. It completed all 10, then autonomously generated 6 more and has already implemented 3 of those. Every improvement is validated (syntax, imports, schema), committed to git, and pushed to this repo. If validation fails, the batch is rolled back automatically. The agent literally cannot corrupt itself.
+It began with 10 seed capabilities. It completed all 10, then autonomously generated 6 more and has already implemented 4 of those. Every improvement is validated (syntax, imports, schema), committed to git, and pushed to this repo. If validation fails, the batch is rolled back automatically. The agent literally cannot corrupt itself.
 
 This is a **living repository**. Miguel auto-commits and pushes after each successful improvement. The code you see today will be different tomorrow as Miguel continues to evolve. Star or watch this repo to follow along.
 
-Beyond self-improvement, Miguel is also a fully interactive AI assistant — chat with it, have it search the web, remember things across sessions, plan multi-step projects, or work with your files.
+Beyond self-improvement, Miguel is also a fully interactive AI assistant — chat with it, have it search the web, remember things across sessions, plan multi-step projects, analyze your files, or work with your data.
 
 ## What It Looks Like
 
@@ -40,7 +40,7 @@ Miguel: I'm a self-improving AI agent. Here's what I can do right now:
   - Search the web for current information
   - Remember facts and preferences across sessions
   - Break complex tasks into structured plans
-  - Read, write, and analyze files in your workspace
+  - Analyze PDFs, CSVs, Excel files, and images
   - Execute Python code and shell commands
   - And I can improve myself — add new tools, rewrite my own
     prompts, and generate new capabilities autonomously.
@@ -81,6 +81,8 @@ Batch 1 succeeded: Added web search via DuckDuckGo
 - **Web search** — Search the web and news via DuckDuckGo, with region filtering
 - **Persistent memory** — Remembers facts, preferences, and context across sessions (SQLite-backed)
 - **Task planning** — Breaks complex requests into ordered tasks with dependencies and progress tracking
+- **File analysis** — Analyze PDFs, CSVs, Excel files, images, and structured data with rich output
+- **Data querying** — Run pandas expressions on any tabular data file
 - **File workspace** — Read, write, and analyze files in the shared `user_files/` directory
 - **Code execution** — Run Python code and shell commands inside the sandbox
 - **Conversation history** — Maintains context across messages (last 20 turns per session)
@@ -143,7 +145,7 @@ miguel
 | `/history` | Show the improvement log |
 | `/quit` | Exit |
 
-Ask Miguel to search the web, remember your preferences, create a plan for a project, or analyze files in `user_files/`.
+Ask Miguel to search the web, remember your preferences, create a plan for a project, analyze files in `user_files/`, or query your data.
 
 ### Improvement Mode
 
@@ -155,7 +157,7 @@ Each batch: git snapshot → reload agent → agent picks next capability → im
 
 ### User Files
 
-Drop files in the `user_files/` directory to share them with Miguel. He can read, write, and manipulate anything there — analyze spreadsheets, transform data, generate reports, etc.
+Drop files in the `user_files/` directory to share them with Miguel. He can read, write, and manipulate anything there — analyze spreadsheets, extract text from PDFs, describe images, transform data, generate reports, etc.
 
 ## Architecture
 
@@ -166,7 +168,7 @@ HOST (your machine)                           DOCKER CONTAINER (sandboxed)
 │  Improvement runner          │   HTTP/SSE   │                              │
 │  Git commit/push             │ ◄──────────► │  Agent + all tool execution  │
 │  Validation checks           │              │  Shell, Python, file I/O     │
-│  Terminal display            │              │  30+ tools                   │
+│  Terminal display            │              │  35+ tools                   │
 └──────────────────────────────┘              └──────────────────────────────┘
 ```
 
@@ -220,20 +222,20 @@ When all capabilities are checked, the agent generates new ones and keeps going.
 
 Miguel started with 10 seed capabilities and has been generating its own ever since.
 
-### Seed Capabilities
+### Seed Capabilities (all complete ✅)
 
-| ID | Title | Category | Status |
-|----|-------|----------|--------|
-| cap-001 | Respond to basic questions | core | done |
-| cap-002 | Read and explain own source code | self-awareness | done |
-| cap-003 | Modify own instructions/prompts | self-improvement | done |
-| cap-004 | Create new custom tools | self-improvement | done |
-| cap-005 | Error handling and recovery | robustness | done |
-| cap-006 | Execute and validate Python code | capability | done |
-| cap-007 | Maintain improvement context | memory | done |
-| cap-008 | Validate own code before writing | safety | done |
-| cap-009 | Refactor and optimize existing code | quality | done |
-| cap-010 | Generate new capabilities autonomously | self-improvement | done |
+| ID | Title | Category |
+|----|-------|----------|
+| cap-001 | Respond to basic questions | core |
+| cap-002 | Read and explain own source code | self-awareness |
+| cap-003 | Modify own instructions/prompts | self-improvement |
+| cap-004 | Create new custom tools | self-improvement |
+| cap-005 | Error handling and recovery | robustness |
+| cap-006 | Execute and validate Python code | capability |
+| cap-007 | Maintain improvement context | memory |
+| cap-008 | Validate own code before writing | safety |
+| cap-009 | Refactor and optimize existing code | quality |
+| cap-010 | Generate new capabilities autonomously | self-improvement |
 
 ### Self-Generated Capabilities
 
@@ -241,12 +243,12 @@ These were created by Miguel itself after completing all seed capabilities:
 
 | ID | Title | Status |
 |----|-------|--------|
-| cap-011 | Web search and information retrieval | done |
-| cap-012 | Persistent memory across sessions | done |
-| cap-013 | Structured task planning and decomposition | done |
-| cap-014 | File analysis — PDF, CSV, images, structured data | pending |
-| cap-015 | API integration framework | pending |
-| cap-016 | Project scaffolding and code generation | pending |
+| cap-011 | Web search and information retrieval | ✅ done |
+| cap-012 | Persistent memory across sessions | ✅ done |
+| cap-013 | Structured task planning and decomposition | ✅ done |
+| cap-014 | File analysis — PDF, CSV, images, structured data | ✅ done |
+| cap-015 | API integration framework | ⬜ pending |
+| cap-016 | Project scaffolding and code generation | ⬜ pending |
 
 *This list grows over time as Miguel generates and implements new capabilities.*
 
@@ -278,21 +280,22 @@ Miguel/
 │       ├── capabilities.json      # Capability checklist
 │       ├── improvements.md        # Improvement log
 │       └── tools/
-│           ├── error_utils.py     # Safe tool decorator + atomic writes
-│           ├── capability_tools.py # Checklist management
-│           ├── self_tools.py      # Self-inspection + logging
-│           ├── prompt_tools.py    # Prompt self-modification
-│           ├── tool_creator.py    # Tool creation + auto-registration
-│           ├── recovery_tools.py  # Backups + diagnostics
-│           ├── dep_tools.py       # Dependency management
-│           ├── web_tools.py       # Web search (DuckDuckGo)
-│           ├── memory_tools.py    # Persistent memory (SQLite)
-│           └── planning_tools.py  # Task planning + dependencies
+│           ├── error_utils.py         # Safe tool decorator + atomic writes
+│           ├── capability_tools.py    # Checklist management
+│           ├── self_tools.py          # Self-inspection + logging
+│           ├── prompt_tools.py        # Prompt self-modification
+│           ├── tool_creator.py        # Tool creation + auto-registration
+│           ├── recovery_tools.py      # Backups + diagnostics
+│           ├── dep_tools.py           # Dependency management
+│           ├── web_tools.py           # Web search (DuckDuckGo)
+│           ├── memory_tools.py        # Persistent memory (SQLite)
+│           ├── planning_tools.py      # Task planning + dependencies
+│           └── file_analysis_tools.py # PDF, CSV/Excel, image analysis
 ```
 
 ## Tools
 
-Miguel has 30+ tools across 10 categories, plus access to Python, shell, and filesystem tools from Agno.
+Miguel has 35+ tools across 11 categories, plus access to Python, shell, and filesystem tools from Agno.
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -303,8 +306,9 @@ Miguel has 30+ tools across 10 categories, plus access to Python, shell, and fil
 | **Error Recovery** | `recover_backup`, `list_recovery_points`, `validate_agent_file`, `health_check` | Diagnostics, backups, restoration |
 | **Dependencies** | `add_dependency`, `list_dependencies` | Install and track Python packages |
 | **Web Search** | `web_search`, `web_news`, `web_search_detailed` | Search the web via DuckDuckGo |
-| **Memory** | `remember`, `recall`, `forget`, `memory_stats` | Persistent facts, preferences, context |
+| **Memory** | `remember`, `recall`, `forget`, `list_memories` | Persistent facts, preferences, context |
 | **Planning** | `create_plan`, `add_task`, `update_task`, `show_plan`, `list_plans`, `get_next_task`, `remove_plan` | Structured task decomposition |
+| **File Analysis** | `analyze_csv`, `analyze_pdf`, `analyze_image`, `csv_query` | PDF text extraction, data analysis, image metadata |
 | **Built-in (Agno)** | `PythonTools`, `ShellTools`, `LocalFileSystemTools` | Execute code, run commands, file I/O |
 
 ## This Is a Living Project
