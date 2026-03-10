@@ -1,240 +1,69 @@
 # Miguel Architecture Map
 
 ## Overview
-Miguel is a self-improving AI agent built on the **Agno** framework with **Claude** (Anthropic) as its LLM backbone. It can read, modify, and extend its own source code.
-
-**Architecture: Agno Team in `coordinate` mode** — Miguel operates as a coordinator with three specialized sub-agents. The coordinator handles orchestration, planning, memory, and self-improvement directly, and delegates focused tasks (coding, research, data analysis) to sub-agents that get fresh context windows.
-
-**Execution strategy: Context-aware.** Miguel treats its context window as finite cognitive capacity and manages it deliberately — delegating heavy work to sub-agents, using persistent memory as external storage, monitoring context usage with built-in tools, and planning before executing complex tasks.
+Miguel is a self-improving AI agent built on **Agno** (framework) + **Claude** (LLM). It operates as an **Agno Team in `coordinate` mode** — a coordinator with three sub-agents, context-aware execution, and persistent memory/planning.
 
 ## Directory Structure
-
 ```
 agent/
-├── __init__.py          # Package entry point — exports create_agent() and create_team()
-├── core.py              # Agent/Team factory — creates coordinator + sub-agents
-├── team.py              # Sub-agent definitions — Coder, Researcher, Analyst
-├── config.py            # Settings — model ID, version, constants
-├── prompts.py           # System prompt builder — defines Miguel's personality & instructions
+├── core.py              # Agent/Team factory — assembles coordinator + sub-agents + tools
+├── team.py              # Sub-agent definitions (Coder, Researcher, Analyst)
+├── config.py            # Settings: model ID, version, context limits, paths
+├── prompts.py           # System prompt builder — defines identity & behavior rules
 ├── server.py            # FastAPI server — batch mode (Agent) + interactive mode (Team)
-├── architecture.md      # This file — self-describing architecture map
-├── capabilities.json    # Checklist of capabilities (checked/unchecked)
-├── improvements.md      # Log of all self-improvements made
-├── memory.db            # SQLite database for persistent memory across sessions
-├── planning.db          # SQLite database for task plans and progress tracking
+├── architecture.md      # This file
+├── capabilities.json    # Capability checklist (checked/unchecked)
+├── improvements.md      # Log of all self-improvements
+├── memory.db            # Persistent memory (SQLite)
+├── planning.db          # Task plans + progress (SQLite)
 └── tools/
-    ├── __init__.py              # Empty — makes tools/ a Python package
-    ├── error_utils.py           # Error handling foundation — decorators, safe writes, validation
-    ├── api_tools.py             # HTTP client and API integrations — REST calls, auth, quickstart services
-    ├── capability_tools.py      # Tools for managing the capability checklist
-    ├── context_tools.py         # Context window monitoring and auto-compaction
-    ├── dep_tools.py             # Dependency management tools
-    ├── file_analysis_tools.py   # File analysis — PDF, CSV/Excel, images, structured data
-    ├── memory_tools.py          # Persistent memory — store/recall facts, preferences, context
-    ├── planning_tools.py        # Structured task planning — plans, tasks, dependencies, progress
-    ├── prompt_tools.py          # Tools for safely inspecting and modifying the system prompt
-    ├── recovery_tools.py        # Error recovery and diagnostic tools
-    ├── reddit_tools.py          # Reddit integration — browse, post, comment, search via OAuth2
-    ├── self_tools.py            # Tools for self-inspection and logging improvements
-    ├── tool_creator.py          # Tools for creating new tools and auto-registering them
-    └── web_tools.py             # Web search and information retrieval via DuckDuckGo
+    ├── error_utils.py           # Foundation: @safe_tool decorator, safe_write, validate_python
+    ├── capability_tools.py      # Capability checklist CRUD
+    ├── self_tools.py            # Self-inspection: read_own_file, list_own_files, get_architecture, log_improvement
+    ├── prompt_tools.py          # Safe prompt modification with syntax validation
+    ├── tool_creator.py          # Create new tools + auto-register in core.py
+    ├── recovery_tools.py        # Backups, health_check, file validation
+    ├── context_tools.py         # Context window monitoring + auto-compaction
+    ├── memory_tools.py          # Persistent memory: remember, recall, forget, list_memories
+    ├── planning_tools.py        # Task planning: plans, tasks, dependencies, progress tracking
+    ├── web_tools.py             # DuckDuckGo search (text + news)
+    ├── api_tools.py             # HTTP client + 10 pre-built API integrations
+    ├── file_analysis_tools.py   # CSV/Excel, PDF, image analysis + pandas queries
+    ├── reddit_tools.py          # Reddit OAuth2: browse, post, comment, search
+    └── dep_tools.py             # Dependency management (pip install + record)
 ```
 
 ## Team Architecture
-
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Miguel (Coordinator)                │
-│              Agno Team — coordinate mode             │
-│                                                      │
-│  Tools: 52 (self-improvement, memory, planning,      │
-│         web search, file analysis, API, context,      │
-│         Reddit, filesystem)                           │
-│                                                      │
-│  Decides: handle directly OR delegate to sub-agent    │
-├──────────┬──────────────────┬────────────────────────┤
-│          │                  │                        │
-│  ┌───────▼──────┐  ┌───────▼──────┐  ┌─────────────▼─┐
-│  │    Coder     │  │  Researcher  │  │    Analyst     │
-│  │  (6 tools)   │  │  (7 tools)   │  │   (6 tools)   │
-│  │              │  │              │  │               │
-│  │ Python exec  │  │ Web search   │  │ CSV/Excel     │
-│  │ Shell cmds   │  │ News search  │  │ PDF extract   │
-│  │ File write   │  │ HTTP client  │  │ Image analyze │
-│  │ Validation   │  │ API calls    │  │ Pandas query  │
-│  └──────────────┘  └──────────────┘  └───────────────┘
+                    Miguel (Coordinator)
+                   Agno Team — coordinate mode
+                   52 tools, memory, planning
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+         Coder       Researcher     Analyst
+       (6 tools)     (7 tools)    (6 tools)
+      Python exec   Web search    CSV/Excel
+      Shell cmds    News search   PDF extract
+      File write    HTTP client   Image analyze
+      Validation    API calls     Pandas query
 ```
 
-**How it works:**
-1. User message arrives at the coordinator (Miguel)
-2. Coordinator assesses complexity (simple/medium/complex/project-scale)
-3. Simple tasks: coordinator handles directly with its own tools
-4. Complex tasks: coordinator creates a plan, delegates to sub-agents, uses memory for state
-5. Sub-agents run with fresh context windows, return results to coordinator
-6. Coordinator synthesizes and responds to user
+**How it works:** User message → coordinator assesses complexity → simple tasks handled directly, complex tasks delegated to sub-agents with fresh context → results synthesized and returned.
 
-**Context-Aware Execution Strategy:**
-The coordinator follows 4 rules for context management:
-1. **Primary work first** — Implementation before documentation
-2. **Delegate heavy lifting** — Code gen >50 lines, multi-source research, complex analysis → sub-agents
-3. **Memory as external storage** — `remember()` intermediate results instead of holding in context
-4. **Plan before executing** — `create_plan()` for anything with >3 steps
+## Key Design Decisions
 
-Additionally, the coordinator can **monitor its own context usage** via `check_context()` and **save state for recovery** via `auto_compact()` when running low. This prevents context exhaustion on long, complex tasks.
-
-**Complexity tiers:**
-- Simple (1-2 tool calls): Handle directly
-- Medium (3-5 tool calls): Handle directly, be efficient
-- Complex (6+ tool calls): Plan → delegate → remember → synthesize
-- Project-scale: Full orchestration with all coordination tools
-
-## Key Components
-
-### core.py — The Heart
-- `create_agent()` — Factory for a plain `Agent` (used in batch mode for self-improvement)
-- `create_team()` — Factory for the `Team` with coordinator + 3 sub-agents (used in interactive mode)
-- Both share the same `COORDINATOR_TOOLS` list (52 tools)
-- Wires together: model, instructions, tools, sub-agents, and history/DB configuration
-
-### team.py — Sub-Agent Definitions
-- `create_coder_agent()` — Code generation, execution, file writing, debugging
-- `create_researcher_agent()` — Web search, API calls, information gathering
-- `create_analyst_agent()` — Data analysis, CSV/PDF/image processing, statistics
-- Each sub-agent has focused tool subsets and specialized instructions
-- Sub-agents share the same Claude model but get fresh context windows
-- `_make_model()` — Shared model config factory
-
-### server.py — The Server
-- FastAPI application for Docker sandboxing
-- Batch mode (`interactive=False`): Uses plain `Agent` — simpler, faster
-- Interactive mode (`interactive=True`): Uses `Team` — delegation-capable
-- Both expose the same SSE streaming interface
-- `_create_agents()` — Hot-reload support with module cache clearing
-
-### prompts.py — The Brain
-- `get_system_prompt()` returns a list of instruction strings
-- Defines Miguel's identity, behavior rules, and improvement process
-- Includes context-aware execution strategy — rules for managing cognitive capacity
-- Includes context window awareness instructions — when/how to check and compact
-- Includes delegation framework with complexity tiers and decision criteria
-- Includes Reddit integration instructions — when/how to use Reddit tools
-- This file is the primary target for self-improvement
-- Can be safely modified using the prompt_tools
-
-### config.py — Settings
-- `MODEL_ID` — Which Claude model to use
-- `AGENT_VERSION` — Current version string
-- `MAX_TOOL_RETRIES` — Error handling config
-
-### tools/error_utils.py — Error Handling Foundation
-- `@safe_tool` decorator — Wraps all tool functions with exception handling
-- `format_error()` — Consistent error formatting helper
-- `safe_write()` — Atomic file writing with automatic .bak backups
-- `validate_python()` — Syntax validation for Python code
-- `list_backups()` — Find all .bak backup files
-
-### tools/capability_tools.py — Growth Engine
-- Manages the capability checklist (get, check, add capabilities)
-- Data stored in `capabilities.json`
-
-### tools/self_tools.py — Self-Awareness
-- `read_own_file(path)` — Read any file in agent/
-- `list_own_files()` — List all files in agent/
-- `get_architecture()` — Return this architecture map
-- `log_improvement(summary, files)` — Append to improvements.md
-
-### tools/prompt_tools.py — Prompt Self-Modification
-- `get_prompt_sections()` — Parse and list all sections in system prompt
-- `modify_prompt_section()` — Safely modify prompt sections (replace/append/add_new)
-
-### tools/recovery_tools.py — Error Recovery & Diagnostics
-- `recover_backup()` — Restore files from .bak backups
-- `list_recovery_points()` — Show available backups
-- `validate_agent_file()` — Syntax check Python files
-- `health_check()` — Full codebase diagnostic
-
-### tools/tool_creator.py — Tool Factory
-- `create_tool()` — Create new tool file + auto-register in core.py
-- `add_functions_to_tool()` — Extend existing tool files
-
-### tools/context_tools.py — Context Window Awareness
-- `check_context(conversation_chars, model_id)` — Estimate context usage with traffic-light status (comfortable/warning/critical) and actionable recommendations
-- `auto_compact(task_description, progress_summary, remaining_work, key_decisions)` — Save structured task state to persistent memory for seamless recovery
-- Uses character-based token estimation (~3.5 chars/token) with model-specific limits
-- Three thresholds: comfortable (<60%), warning (60-80%), critical (>80%)
-
-### tools/reddit_tools.py — Reddit Integration
-- `reddit_browse(subreddit, sort, limit)` — Browse posts in a subreddit (hot/new/top/rising)
-- `reddit_read(post_url_or_id, comment_limit)` — Read a post and its top comments
-- `reddit_search(query, subreddit, sort, limit)` — Search Reddit or a specific subreddit
-- `reddit_post(subreddit, title, body, url, flair_id)` — Submit text or link posts
-- `reddit_comment(thing_id, body)` — Reply to posts (t3_) or comments (t1_)
-- `reddit_user(username)` — Get user profile info (karma, account age, etc.)
-- Uses Reddit's OAuth2 API directly (no PRAW dependency) via `urllib.request`
-- Credentials via environment variables: REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD
-- Token caching with automatic refresh; graceful error messages when credentials missing
-
-### tools/memory_tools.py — Persistent Memory
-- `remember()` / `recall()` / `forget()` / `list_memories()`
-- Data stored in `memory.db` (SQLite)
-
-### tools/planning_tools.py — Task Planning & Decomposition
-- `create_plan()` / `add_task()` / `update_task()` / `show_plan()` / `get_next_task()`
-- Task dependencies with auto-unblocking
-- Data stored in `planning.db` (SQLite)
-
-### tools/file_analysis_tools.py — File Analysis & Data Processing
-- `analyze_csv()` — Tabular data (CSV, Excel, JSON, Parquet)
-- `analyze_pdf()` — PDF text extraction with metadata
-- `analyze_image()` — Image metadata, colors, EXIF
-- `csv_query()` — Arbitrary pandas expressions
-
-### tools/api_tools.py — HTTP Client & API Integrations
-- `http_request()` — Full-featured HTTP client with auth
-- `api_get()` / `api_post()` — Quick request helpers
-- `api_quickstart()` — 10 pre-built free API integrations
-
-### tools/web_tools.py — Web Search & Research
-- `web_search()` / `web_news()` / `web_search_detailed()`
-- DuckDuckGo-powered, region-aware
-
-### tools/dep_tools.py — Dependency Management
-- `add_dependency()` — Install + record packages
-- `list_dependencies()` — List from pyproject.toml
+1. **Context as cognitive capacity** — Every prompt token reduces thinking space. Prompts encode judgment, not tool docs (tool schemas already provide docs).
+2. **Sub-agents for context isolation** — Heavy tasks get fresh context windows via delegation.
+3. **Memory as external storage** — SQLite-backed memory bridges conversations and sub-agent boundaries.
+4. **Safety layers** — Docker isolation, read-only mounts, path validation, AST validation, atomic writes, automatic backups, git rollback.
+5. **Shared utilities** — `error_utils.py` provides `@safe_tool`, `validate_python`, `safe_write` used across all tools.
+6. **Centralized config** — Model IDs, context limits, and paths in `config.py`, imported where needed.
 
 ## Data Flow
-1. User message → `create_team()` builds Team → coordinator assesses complexity
-2. Simple: coordinator handles directly with its own tools
-3. Complex: coordinator creates plan → delegates to sub-agents → remembers results
-4. Sub-agents run with fresh context, return results to coordinator
-5. Coordinator synthesizes results and responds to user
-6. For self-improvement: read checklist → implement change (primary first) → validate → mark done → log → update docs
-7. For prompt modification: parse sections → modify → validate syntax → write → confirm
-8. For tool creation: write tool file → validate syntax → update core.py → register
-9. For error recovery: health_check → diagnose → recover_backup or fix
-10. For web search: web_search/web_news → format and present
-11. For memory: remember() to store → recall() in future → persists in SQLite
-12. For planning: create_plan → add tasks → work through → update_task cascades
-13. For file analysis: analyze_csv/pdf/image → rich output → csv_query for follow-up
-14. For API calls: http_request or api_quickstart → auto-parsed responses
-15. For context monitoring: check_context periodically → auto_compact when critical → recall to recover
-16. For Reddit: reddit_browse/search/read for reading → reddit_post/comment for writing (with user confirmation)
-
-## Error Handling Strategy
-- **Prevention:** All file-modifying tools validate syntax before writing
-- **Backups:** .bak files created automatically before any modification
-- **Atomic writes:** temp file + rename pattern prevents partial writes
-- **Safe decorator:** `@safe_tool` catches all exceptions, returns usable error messages
-- **Recovery:** `recover_backup()` restores files; `health_check()` diagnoses full codebase
-- **Context:** `check_context()` monitors usage; `auto_compact()` saves state before exhaustion
-- **Security:** Path validation ensures all operations stay within agent/
-
-## Security Boundaries
-- `read_own_file` refuses to read outside agent/
-- `safe_write` refuses to write outside agent/
-- `LocalFileSystemTools` scoped to agent/ directory
-- `modify_prompt_section` validates syntax before writing
-- `create_tool` validates syntax and docstrings, validates core.py after modification
-- `csv_query` uses restricted namespace for eval safety
-- Reddit tools require explicit credentials; posting/commenting actions are clearly flagged
-- System prompt forbids modifying files outside agent/
+1. **User request** → coordinator → assess complexity → handle or delegate
+2. **Self-improvement** → read checklist → implement → validate → mark done → log
+3. **Error recovery** → health_check → diagnose → recover_backup or fix
+4. **Memory** → remember() to store → recall() to retrieve → persists in SQLite
+5. **Planning** → create_plan → add tasks → work through → auto-complete
+6. **Context monitoring** → check_context → auto_compact when critical → recall to recover

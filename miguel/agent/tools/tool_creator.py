@@ -1,23 +1,13 @@
 """Tool for creating and registering new tools in Miguel's toolset."""
 
 import ast
-import re
 from pathlib import Path
 
-from miguel.agent.tools.error_utils import safe_tool
+from miguel.agent.tools.error_utils import safe_tool, validate_python
 
 AGENT_DIR = Path(__file__).parent.parent
 CORE_PATH = AGENT_DIR / "core.py"
 TOOLS_DIR = AGENT_DIR / "tools"
-
-
-def _validate_python(code: str) -> tuple[bool, str]:
-    """Validate Python code syntax. Returns (is_valid, error_message)."""
-    try:
-        ast.parse(code)
-        return True, ""
-    except SyntaxError as e:
-        return False, f"SyntaxError at line {e.lineno}: {e.msg}"
 
 
 def _extract_function_names(code: str) -> list[str]:
@@ -46,13 +36,13 @@ def _register_tools_in_core(file_name: str, func_names: list[str]) -> str:
     """Add import and tool registration for given functions to core.py."""
     if not CORE_PATH.exists():
         return "Error: core.py not found. Cannot register tools."
-    
+
     core_code = CORE_PATH.read_text()
-    
+
     # Backup core.py before modifying
     backup_path = CORE_PATH.with_suffix(".py.bak")
     backup_path.write_text(core_code)
-    
+
     module_name = file_name.replace(".py", "")
     import_module = f"miguel.agent.tools.{module_name}"
 
@@ -114,7 +104,7 @@ def _register_tools_in_core(file_name: str, func_names: list[str]) -> str:
     new_code = new_code[:tools_end_pos] + tool_entries + new_code[tools_end_pos:]
 
     # Validate the modified core.py before writing
-    is_valid, error = _validate_python(new_code)
+    is_valid, error = validate_python(new_code)
     if not is_valid:
         # Restore backup
         backup_path.rename(CORE_PATH)
@@ -136,7 +126,6 @@ def create_tool(file_name: str, code: str, register: bool = True) -> str:
     Returns:
         Success message listing created functions, or an error message.
     """
-    # Validate file name
     if not file_name or not file_name.strip():
         return "Error: file_name must not be empty."
     if not file_name.endswith(".py"):
@@ -147,34 +136,27 @@ def create_tool(file_name: str, code: str, register: bool = True) -> str:
         return "Error: file_name must be a simple filename, not a path"
 
     target_path = TOOLS_DIR / file_name
-
-    # Check if file already exists
     if target_path.exists():
         return (
             f"Error: tools/{file_name} already exists. "
             "Use add_functions_to_tool to extend it, or choose a different name."
         )
 
-    # Validate syntax
-    is_valid, error = _validate_python(code)
+    is_valid, error = validate_python(code)
     if not is_valid:
         return f"Error: Invalid Python syntax in provided code. {error}"
 
-    # Extract public functions
     func_names = _extract_function_names(code)
     if not func_names:
         return "Error: Code must contain at least one public function (no leading underscore)."
 
-    # Check all public functions have docstrings (required by Agno for tool descriptions)
     for fn in func_names:
         if not _has_docstring(code, fn):
             return f"Error: Function '{fn}' must have a docstring. Agno uses docstrings as tool descriptions."
 
-    # Write the tool file
     target_path.write_text(code)
     result_parts = [f"Created tools/{file_name} with functions: {', '.join(func_names)}"]
 
-    # Register in core.py
     if register:
         reg_result = _register_tools_in_core(file_name, func_names)
         result_parts.append(reg_result)
@@ -195,18 +177,15 @@ def add_functions_to_tool(file_name: str, new_code: str) -> str:
     """
     if not file_name or not file_name.strip():
         return "Error: file_name must not be empty."
-    
-    target_path = TOOLS_DIR / file_name
 
+    target_path = TOOLS_DIR / file_name
     if not target_path.exists():
         return f"Error: tools/{file_name} does not exist. Use create_tool to create it first."
 
-    # Validate the new code on its own
-    is_valid, error = _validate_python(new_code)
+    is_valid, error = validate_python(new_code)
     if not is_valid:
         return f"Error: Invalid Python syntax. {error}"
 
-    # Extract function names from new code
     new_funcs = _extract_function_names(new_code)
     if not new_funcs:
         return "Error: new_code must contain at least one public function."
@@ -215,26 +194,21 @@ def add_functions_to_tool(file_name: str, new_code: str) -> str:
         if not _has_docstring(new_code, fn):
             return f"Error: Function '{fn}' must have a docstring."
 
-    # Read existing file and check for name conflicts
     existing_code = target_path.read_text()
     existing_funcs = _extract_function_names(existing_code)
     conflicts = set(new_funcs) & set(existing_funcs)
     if conflicts:
         return f"Error: Functions already exist in {file_name}: {', '.join(conflicts)}"
 
-    # Combine and validate the full file
     combined = existing_code.rstrip() + "\n\n\n" + new_code.strip() + "\n"
-    is_valid, error = _validate_python(combined)
+    is_valid, error = validate_python(combined)
     if not is_valid:
         return f"Error: Combined code has syntax errors. {error}"
 
-    # Backup existing file before writing
     backup_path = target_path.with_suffix(".py.bak")
     backup_path.write_text(existing_code)
 
-    # Write combined file
     target_path.write_text(combined)
 
-    # Register new functions in core.py
     reg_result = _register_tools_in_core(file_name, new_funcs)
     return f"Added functions {', '.join(new_funcs)} to tools/{file_name}. {reg_result}"

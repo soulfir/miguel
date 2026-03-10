@@ -5,7 +5,7 @@ across all tool functions. Instead of raw exceptions bubbling up, tools
 return clean error messages the agent can understand and act on.
 
 Also provides safe file writing with atomic operations and backups,
-plus recovery tools for restoring from backups.
+plus validation and backup discovery utilities.
 """
 
 import ast
@@ -49,7 +49,6 @@ def safe_tool(func: Callable) -> Callable:
         except OSError as e:
             return f"Error in {func.__name__}: OS/filesystem error — {e}"
         except Exception as e:
-            # Catch-all for unexpected errors — include traceback for debugging
             tb = traceback.format_exc()
             short_tb = "\n".join(tb.strip().split("\n")[-3:])
             return (
@@ -58,23 +57,6 @@ def safe_tool(func: Callable) -> Callable:
             )
 
     return wrapper
-
-
-def format_error(tool_name: str, error: Exception, hint: str = "") -> str:
-    """Format an error message consistently for tool responses.
-
-    Args:
-        tool_name: Name of the tool/function that failed.
-        error: The exception that was caught.
-        hint: Optional hint for recovery.
-
-    Returns:
-        Formatted error string.
-    """
-    msg = f"Error in {tool_name}: {type(error).__name__} — {error}"
-    if hint:
-        msg += f"\nHint: {hint}"
-    return msg
 
 
 def safe_write(target: Path, content: str, backup: bool = True) -> str:
@@ -93,24 +75,20 @@ def safe_write(target: Path, content: str, backup: bool = True) -> str:
     Returns:
         Success message or raises an exception.
     """
-    # Security check
     agent_resolved = AGENT_DIR.resolve()
     target_resolved = target.resolve()
     if not str(target_resolved).startswith(str(agent_resolved)):
         raise PermissionError(f"Cannot write outside agent directory: {target}")
 
-    # Backup existing file
     if backup and target.exists():
         backup_path = target.with_suffix(target.suffix + ".bak")
         backup_path.write_text(target.read_text())
 
-    # Atomic write via temp file
     tmp_path = target.with_suffix(target.suffix + ".tmp")
     try:
         tmp_path.write_text(content)
         tmp_path.rename(target)
     except Exception:
-        # Clean up temp file on failure
         if tmp_path.exists():
             tmp_path.unlink()
         raise
@@ -144,8 +122,7 @@ def list_backups() -> list[dict]:
     for bak in sorted(AGENT_DIR.rglob("*.bak")):
         if "__pycache__" in str(bak):
             continue
-        # Determine original path by removing the .bak suffix
-        original = bak.with_suffix("")  # removes .bak, keeps .py
+        original = bak.with_suffix("")
         backups.append({
             "backup": str(bak.relative_to(AGENT_DIR)),
             "original": str(original.relative_to(AGENT_DIR)),

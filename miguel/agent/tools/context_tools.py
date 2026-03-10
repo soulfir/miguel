@@ -7,22 +7,10 @@ running low. This prevents context exhaustion on complex, multi-step tasks.
 Approach: Since we can't directly query the API for token counts, we estimate
 based on character count of the conversation messages (roughly 3.5 chars per
 token for English text). The model's context window size is known from config.
-
-Key tools:
-    - check_context: Estimate context usage and get recommendations
-    - auto_compact: Save current progress to memory and produce a compact summary
 """
 
+from miguel.agent.config import MODEL_CONTEXT_LIMITS
 from miguel.agent.tools.error_utils import safe_tool
-
-# Claude model context limits (tokens)
-MODEL_CONTEXT_LIMITS = {
-    "claude-opus-4-6": 200_000,
-    "claude-sonnet-4-20250514": 200_000,
-    "claude-sonnet-4-6": 200_000,
-    "claude-haiku-3-5-20241022": 200_000,
-    "default": 200_000,
-}
 
 # Approximate chars per token for estimation (conservative for mixed content)
 CHARS_PER_TOKEN = 3.5
@@ -137,7 +125,6 @@ def auto_compact(
 
     now = datetime.now(timezone.utc).isoformat()
 
-    # Build compact state snapshot
     state_parts = [
         f"TASK: {task_description.strip()}",
         f"PROGRESS: {progress_summary.strip()}",
@@ -147,7 +134,6 @@ def auto_compact(
         state_parts.append(f"DECISIONS: {key_decisions.strip()}")
     state = "\n".join(state_parts)
 
-    # Upsert into memory
     conn = _get_conn()
     try:
         existing = conn.execute(

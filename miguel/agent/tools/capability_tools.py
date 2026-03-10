@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from miguel.agent.tools.error_utils import safe_tool, format_error
+from miguel.agent.tools.error_utils import safe_tool
 
 CAPABILITIES_PATH = Path(__file__).parent.parent / "capabilities.json"
 
@@ -22,11 +22,9 @@ def _load() -> dict:
 
 def _save(data: dict) -> None:
     """Save capabilities data with validation."""
-    # Validate structure before writing
     if not isinstance(data, dict) or "capabilities" not in data:
         raise ValueError("Invalid capabilities data structure")
     text = json.dumps(data, indent=2) + "\n"
-    # Write to temp file first, then rename (atomic write)
     tmp_path = CAPABILITIES_PATH.with_suffix(".json.tmp")
     tmp_path.write_text(text)
     tmp_path.rename(CAPABILITIES_PATH)
@@ -54,7 +52,7 @@ def check_capability(capability_id: str) -> str:
     """Mark a capability as completed by its ID (e.g. 'cap-001')."""
     if not capability_id or not capability_id.startswith("cap-"):
         return f"Error: Invalid capability ID '{capability_id}'. Must be like 'cap-001'."
-    
+
     data = _load()
     for item in data["capabilities"]:
         if item["id"] == capability_id:
@@ -70,20 +68,18 @@ def check_capability(capability_id: str) -> str:
 @safe_tool
 def add_capability(title: str, description: str, priority: int) -> str:
     """Add a new capability to the checklist. Priority determines order (lower = higher priority)."""
-    # Validate inputs
     if not title or not title.strip():
         return "Error: title must not be empty."
     if not description or not description.strip():
         return "Error: description must not be empty."
     if not isinstance(priority, int) or priority < 1:
         return "Error: priority must be a positive integer."
-    
+
     data = _load()
     existing_ids = [c["id"] for c in data["capabilities"]]
     max_num = max(int(cid.split("-")[1]) for cid in existing_ids) if existing_ids else 0
     new_id = f"cap-{max_num + 1:03d}"
 
-    # Check for duplicate titles
     existing_titles = [c["title"].lower() for c in data["capabilities"]]
     if title.strip().lower() in existing_titles:
         return f"Warning: A capability with a similar title already exists. Adding anyway as '{new_id}'."

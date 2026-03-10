@@ -117,3 +117,25 @@ Updated `README.md`: Updated tool count (46→52), added cap-020 as ✅ done, ad
 
 Before/after metrics: core.py 204→214 lines (+10), prompts.py 251→270 lines (+19), new file tools/reddit_tools.py 410 lines. Total: +439 lines of new functionality. No new dependencies added — uses only stdlib urllib.request.
 **Files changed:** tools/reddit_tools.py, core.py, prompts.py, architecture.md, README.md
+
+### 2026-03-10 11:48:26 UTC
+**Summary:** Batch #3: Implemented cap-021 (Architecture consolidation and cleanup). Comprehensive codebase cleanup reducing total lines by 512 (10%) and system prompt by 170 lines (63%).
+
+**Changes made:**
+
+1. **Streamlined prompts.py (270→100 lines, -63%)** — The highest-impact change. Removed all tool documentation sections that duplicated what Agno already sends as tool schemas. The prompt now encodes *judgment and priorities* rather than restating tool docstrings. This saves ~170 lines of context on EVERY request — the single biggest context efficiency gain possible.
+
+2. **Deduplicated validate_python** — `tool_creator.py` had its own `_validate_python()` that was identical to `error_utils.validate_python()`. Replaced with a shared import. Removed unused `re` import and `import re` from tool_creator.py.
+
+3. **Removed unused code** — Removed `format_error()` from `error_utils.py` (was imported by capability_tools.py but never called since `@safe_tool` handles errors). Removed that unused import from capability_tools.py.
+
+4. **Cleaned up config.py (12→22 lines)** — Removed unused `MAX_TOOL_RETRIES` setting. Added `MODEL_CONTEXT_LIMITS` dict (was hardcoded in context_tools.py). Bumped version to 0.2.0. Config is now the single source of truth for model settings.
+
+5. **Centralized model context limits** — `context_tools.py` now imports `MODEL_CONTEXT_LIMITS` from config.py instead of hardcoding them. This follows the DRY principle and makes model changes a single-point update.
+
+6. **Streamlined architecture.md (240→69 lines, -71%)** — Removed content that duplicated README.md. Now a lean quick-reference focused on structure and design decisions.
+
+7. **Updated README.md (411→296 lines, -28%)** — Removed redundant sections, tightened wording, updated cap-021 to ✅ done, updated metrics and capability count to 20/20.
+
+Before/after: Total codebase 5131→4619 lines (-512, -10%). Prompt 270→100 lines (-170, -63%). No functionality removed — all 52 tools and 14 tool modules preserved. All files pass syntax validation. Full integration test (agent creation, team creation, all imports) passes.
+**Files changed:** prompts.py, config.py, tools/error_utils.py, tools/tool_creator.py, tools/capability_tools.py, tools/context_tools.py, architecture.md, README.md
