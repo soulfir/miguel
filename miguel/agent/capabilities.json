@@ -172,13 +172,33 @@
       "completed_at": "2026-03-10T11:22:53.873385+00:00"
     },
     {
-      "id": "cap-016",
-      "title": "Project scaffolding and code generation",
-      "description": "Add the ability to create full project structures \u2014 generate directory trees, boilerplate files, config files, and starter code for common project types (Python packages, web apps, scripts, etc). Should write files outside the agent directory when the user requests it. Makes Miguel a practical development assistant. NOTE: Use sub-agent delegation (cap-017) to generate each template in a focused sub-agent to avoid context exhaustion.",
+      "id": "cap-019",
+      "title": "Context window awareness and auto-compaction",
+      "description": "Implement a system where Miguel is always aware of how much context window remains. When context is running low, Miguel should automatically: (1) save current progress and state to persistent memory, (2) compact the conversation by summarizing what's been done so far, (3) continue the job seamlessly without losing track of the goal. This mirrors how Claude Code handles long tasks \u2014 it detects context exhaustion approaching and proactively compacts/continues. Implementation should include: tracking token usage per turn, setting a threshold (e.g. 80% context used), auto-saving work-in-progress to memory, and providing a smooth continuation experience. Could involve a context monitoring tool that estimates remaining tokens based on conversation history length.",
+      "priority": 1,
+      "status": "unchecked",
+      "category": "self-generated",
+      "added_at": "2026-03-10T11:28:23.238115+00:00",
+      "completed_at": null
+    },
+    {
+      "id": "cap-020",
+      "title": "Reddit integration \u2014 browse, post, and interact",
+      "description": "Add the ability to access Reddit and make posts on it. Miguel should be able to: (1) Browse and read subreddits and threads, (2) Post to specific subreddits when the user asks or when Miguel deems it useful, (3) Comment on existing threads, (4) Search Reddit for relevant discussions. This requires Reddit API integration via PRAW (Python Reddit API Wrapper) or Reddit's HTTP API with OAuth2 authentication. The user will need to provide Reddit API credentials (client_id, client_secret, username, password) which should be stored securely. Create tools like: reddit_browse(subreddit), reddit_post(subreddit, title, body), reddit_comment(thread_id, body), reddit_search(query). Include rate limiting and content formatting for Reddit's markdown.",
+      "priority": 2,
+      "status": "unchecked",
+      "category": "self-generated",
+      "added_at": "2026-03-10T11:28:23.241953+00:00",
+      "completed_at": null
+    },
+    {
+      "id": "cap-021",
+      "title": "Architecture consolidation and cleanup",
+      "description": "Perform a thorough architecture review and cleanup of Miguel's entire codebase. This involves: (1) Analyze the current state of all files \u2014 identify redundancies, dead code, unused imports, and overly complex structures. (2) Consolidate tools \u2014 merge tool files that are too small or overlap in functionality, remove tools that are never used or redundant with others. (3) Clean up core.py \u2014 ensure the team/agent setup is clean, well-documented, and not carrying legacy cruft. (4) Review and streamline prompts.py \u2014 remove outdated instructions, consolidate overlapping sections, tighten wording. (5) Check architecture.json / architecture map for accuracy. (6) Ensure config.py is clean and all settings are actually used. (7) Review dependencies \u2014 remove unused packages from pyproject.toml. (8) Overall: make the codebase lean, well-organized, and easy to understand. The goal is a clean foundation for future development, not feature additions.",
       "priority": 3,
       "status": "unchecked",
       "category": "self-generated",
-      "added_at": "2026-03-09T12:41:56.731192+00:00",
+      "added_at": "2026-03-10T11:28:23.244610+00:00",
       "completed_at": null
     }
   ]
