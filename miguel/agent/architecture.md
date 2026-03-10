@@ -5,6 +5,8 @@ Miguel is a self-improving AI agent built on the **Agno** framework with **Claud
 
 **Architecture: Agno Team in `coordinate` mode** — Miguel operates as a coordinator with three specialized sub-agents. The coordinator handles orchestration, planning, memory, and self-improvement directly, and delegates focused tasks (coding, research, data analysis) to sub-agents that get fresh context windows.
 
+**Execution strategy: Context-aware.** Miguel treats its context window as finite cognitive capacity and manages it deliberately — delegating heavy work to sub-agents, using persistent memory as external storage, and planning before executing complex tasks.
+
 ## Directory Structure
 
 ```
@@ -62,18 +64,24 @@ agent/
 
 **How it works:**
 1. User message arrives at the coordinator (Miguel)
-2. Coordinator decides: use own tools directly, or delegate to a sub-agent?
-3. For delegation: coordinator uses `delegate_task_to_member` (auto-provided by Agno)
-4. Sub-agent runs with fresh context, returns result to coordinator
-5. Coordinator synthesizes and responds to user
+2. Coordinator assesses complexity (simple/medium/complex/project-scale)
+3. Simple tasks: coordinator handles directly with its own tools
+4. Complex tasks: coordinator creates a plan, delegates to sub-agents, uses memory for state
+5. Sub-agents run with fresh context windows, return results to coordinator
+6. Coordinator synthesizes and responds to user
 
-**When to delegate:**
-- **Coder**: Large code generation, project scaffolding, debugging sessions
-- **Researcher**: Multi-source web research, thorough fact-checking
-- **Analyst**: Complex data analysis, multi-step CSV processing, report generation
+**Context-Aware Execution Strategy:**
+The coordinator follows 4 rules for context management:
+1. **Primary work first** — Implementation before documentation
+2. **Delegate heavy lifting** — Code gen >50 lines, multi-source research, complex analysis → sub-agents
+3. **Memory as external storage** — `remember()` intermediate results instead of holding in context
+4. **Plan before executing** — `create_plan()` for anything with >3 steps
 
-**When coordinator handles directly:**
-- Quick answers, self-improvement, memory operations, planning, simple tool calls
+**Complexity tiers:**
+- Simple (1-2 tool calls): Handle directly
+- Medium (3-5 tool calls): Handle directly, be efficient
+- Complex (6+ tool calls): Plan → delegate → remember → synthesize
+- Project-scale: Full orchestration with all coordination tools
 
 ## Key Components
 
@@ -101,7 +109,8 @@ agent/
 ### prompts.py — The Brain
 - `get_system_prompt()` returns a list of instruction strings
 - Defines Miguel's identity, behavior rules, and improvement process
-- Includes delegation guidance for team architecture
+- Includes context-aware execution strategy — rules for managing cognitive capacity
+- Includes delegation framework with complexity tiers and decision criteria
 - This file is the primary target for self-improvement
 - Can be safely modified using the prompt_tools
 
@@ -170,19 +179,20 @@ agent/
 - `list_dependencies()` — List from pyproject.toml
 
 ## Data Flow
-1. User message → `create_team()` builds Team → coordinator processes with system prompt
-2. Coordinator decides: use own tools OR delegate to sub-agent (Coder/Researcher/Analyst)
-3. Sub-agents run with fresh context, return results to coordinator
-4. Coordinator synthesizes results and responds to user
-5. For self-improvement: read checklist → implement change → write files → mark done → log
-6. For prompt modification: parse sections → modify → validate syntax → write → confirm
-7. For tool creation: write tool file → validate syntax → update core.py → register
-8. For error recovery: health_check → diagnose → recover_backup or fix
-9. For web search: web_search/web_news → format and present
-10. For memory: remember() to store → recall() in future → persists in SQLite
-11. For planning: create_plan → add tasks → work through → update_task cascades
-12. For file analysis: analyze_csv/pdf/image → rich output → csv_query for follow-up
-13. For API calls: http_request or api_quickstart → auto-parsed responses
+1. User message → `create_team()` builds Team → coordinator assesses complexity
+2. Simple: coordinator handles directly with its own tools
+3. Complex: coordinator creates plan → delegates to sub-agents → remembers results
+4. Sub-agents run with fresh context, return results to coordinator
+5. Coordinator synthesizes results and responds to user
+6. For self-improvement: read checklist → implement change (primary first) → validate → mark done → log → update docs
+7. For prompt modification: parse sections → modify → validate syntax → write → confirm
+8. For tool creation: write tool file → validate syntax → update core.py → register
+9. For error recovery: health_check → diagnose → recover_backup or fix
+10. For web search: web_search/web_news → format and present
+11. For memory: remember() to store → recall() in future → persists in SQLite
+12. For planning: create_plan → add tasks → work through → update_task cascades
+13. For file analysis: analyze_csv/pdf/image → rich output → csv_query for follow-up
+14. For API calls: http_request or api_quickstart → auto-parsed responses
 
 ## Error Handling Strategy
 - **Prevention:** All file-modifying tools validate syntax before writing

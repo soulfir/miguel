@@ -166,10 +166,10 @@
       "title": "Context-aware execution strategy",
       "description": "Update prompts.py with permanent rules for context management and delegation: (1) When a task is complex, use planning tools to break it into sub-tasks and delegate to sub-agents, (2) Use memory tools to save intermediate results and plans across sub-agent calls, (3) Keep the main agent focused on orchestration \u2014 delegate heavy code generation to sub-agents, (4) Write the main implementation code first, then update secondary files (README, architecture, prompts) \u2014 never let secondary work crowd out the primary task, (5) Make context-aware delegation a permanent part of every improvement batch. The agent should make this a core part of its self-improvement process so it never exhausts context again.",
       "priority": 2,
-      "status": "unchecked",
+      "status": "checked",
       "category": "self-generated",
       "added_at": "2026-03-09T18:30:00.000000+00:00",
-      "completed_at": null
+      "completed_at": "2026-03-10T11:22:53.873385+00:00"
     },
     {
       "id": "cap-016",
