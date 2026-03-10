@@ -31,6 +31,7 @@ dependencies = [
     "openpyxl",
     "Pillow",
     "requests",
+    "beautifulsoup4",
 ]
 
 [project.scripts]
