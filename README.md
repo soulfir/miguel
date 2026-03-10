@@ -12,9 +12,9 @@
 
 Miguel is an AI agent that can rewrite itself. Not just generate code for you — it modifies *its own* source code, creates new tools, rewrites its own system prompts, and generates new capabilities it didn't start with.
 
-It began with 10 seed capabilities. It completed all 10, then autonomously generated 6 more and has already implemented all 6. Every improvement is validated (syntax, imports, schema), committed to git, and pushed to this repo. If validation fails, the batch is rolled back automatically. The agent literally cannot corrupt itself.
+It began with 10 seed capabilities. It completed all 10, then autonomously generated 8 more and has already implemented 7 of them. Every improvement is validated (syntax, imports, schema), committed to git, and pushed to this repo. If validation fails, the batch is rolled back automatically. The agent literally cannot corrupt itself.
 
-**Architecture: Agno Team with sub-agent delegation.** Miguel evolved from a single agent into a coordinator that delegates to specialized sub-agents (Coder, Researcher, Analyst), each getting fresh context windows. The coordinator handles orchestration, memory, and planning while sub-agents handle focused work — preventing context exhaustion on complex tasks.
+**Architecture: Agno Team with context-aware delegation.** Miguel evolved from a single agent into a coordinator that delegates to specialized sub-agents (Coder, Researcher, Analyst), each getting fresh context windows. The coordinator treats its context window as finite cognitive capacity — it plans before executing complex tasks, delegates heavy work to sub-agents, and uses persistent memory as external storage to bridge across delegated calls.
 
 This is a **living repository**. Miguel auto-commits and pushes after each successful improvement. The code you see today will be different tomorrow as Miguel continues to evolve. Star or watch this repo to follow along.
 
@@ -81,6 +81,7 @@ Batch 1 succeeded: Added web search via DuckDuckGo
 
 - **Interactive REPL** — Chat with slash commands (`/help`, `/capabilities`, `/improve`, `/history`)
 - **Team architecture** — Coordinator + 3 specialized sub-agents (Coder, Researcher, Analyst)
+- **Context-aware execution** — Assesses task complexity and chooses optimal strategy (direct, delegated, or fully orchestrated)
 - **Web search** — Search the web and news via DuckDuckGo, with region filtering
 - **API integration** — Call any REST API with configurable auth, headers, and body; 10 pre-built free API integrations
 - **Persistent memory** — Remembers facts, preferences, and context across sessions (SQLite-backed)
@@ -97,6 +98,7 @@ Batch 1 succeeded: Added web search via DuckDuckGo
 - **Capability checklist** — Starts with seeds, completes them, then generates new ones autonomously
 - **Tool creation** — Writes new tool files and auto-registers them into its own configuration
 - **Prompt rewriting** — Safely modifies its own system instructions with syntax validation
+- **Context-aware batches** — Prioritizes primary implementation over documentation; delegates heavy code gen to sub-agents
 - **Self-describing architecture** — Maintains a map of its own codebase that it updates after changes
 - **Dependency management** — Can install Python packages it needs and record them for persistence
 - **Error recovery** — Automatic backups, health checks, and backup restoration
@@ -167,18 +169,18 @@ Drop files in the `user_files/` directory to share them with Miguel. He can read
 
 ```
 HOST (your machine)                           DOCKER CONTAINER (sandboxed)
-┌──────────────────────────────┐              ┌──────────────────────────────┐
-│  miguel CLI (cli.py)         │              │  FastAPI server (port 8420)  │
-│  Improvement runner          │   HTTP/SSE   │                              │
-│  Git commit/push             │ ◄──────────► │  Miguel Team (coordinator)   │
-│  Validation checks           │              │  ├── Coder sub-agent         │
-│  Terminal display            │              │  ├── Researcher sub-agent    │
-│                              │              │  ├── Analyst sub-agent       │
-│                              │              │  └── 44 tools                │
-└──────────────────────────────┘              └──────────────────────────────┘
+┌──────────────────────────────────────┐      ┌──────────────────────────────┐
+│  miguel CLI (cli.py)                 │      │  FastAPI server (port 8420)  │
+│  Improvement runner                  │ HTTP │                              │
+│  Git commit/push                     │ /SSE │  Miguel Team (coordinator)   │
+│  Validation checks                   │◄────►│  ├── Coder sub-agent         │
+│  Terminal display                    │      │  ├── Researcher sub-agent    │
+│                                      │      │  ├── Analyst sub-agent       │
+│                                      │      │  └── 44 tools                │
+└──────────────────────────────────────┘      └──────────────────────────────┘
 ```
 
-**Team architecture (coordinate mode):**
+**Team architecture (coordinate mode with context-aware execution):**
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -188,7 +190,7 @@ HOST (your machine)                           DOCKER CONTAINER (sandboxed)
 │  44 tools: self-improvement, memory, planning,       │
 │            web search, file analysis, API, filesystem │
 │                                                      │
-│  Decides: handle directly OR delegate to sub-agent   │
+│  Strategy: assess complexity → plan → delegate/do    │
 ├──────────┬──────────────────┬────────────────────────┤
 │          │                  │                        │
 │  ┌───────▼──────┐  ┌───────▼──────┐  ┌─────────────▼─┐
@@ -201,6 +203,15 @@ HOST (your machine)                           DOCKER CONTAINER (sandboxed)
 │  │ Validation   │  │ API calls    │  │ Pandas query  │
 │  └──────────────┘  └──────────────┘  └───────────────┘
 ```
+
+**Context-aware execution tiers:**
+
+| Complexity | Tool Calls | Strategy |
+|-----------|-----------|----------|
+| Simple | 1-2 | Handle directly, no planning |
+| Medium | 3-5 | Handle directly, be efficient |
+| Complex | 6+ or multi-domain | Plan → delegate → remember → synthesize |
+| Project-scale | Multiple files + domains | Full orchestration with all coordination tools |
 
 The host is the "immune system" — it handles the CLI, git operations, and validation. The container is the "brain in a jar" — all agent execution happens there, isolated from the host.
 
@@ -238,11 +249,13 @@ Nine layers of protection ensure the agent cannot corrupt itself or escape its s
 │  2. Reload agent in Docker container              │
 │  3. Agent reads its own code + checklist          │
 │  4. Agent picks next unchecked capability         │
-│  5. Agent modifies its own code (inside Docker)   │
-│  6. Host validates (AST, imports, schema)         │
-│  7. Pass → git commit + push                      │
+│  5. Agent implements PRIMARY work first           │
+│  6. Agent validates + marks capability done       │
+│  7. Agent updates docs/README (if context allows) │
+│  8. Host validates (AST, imports, schema)         │
+│  9. Pass → git commit + push                      │
 │     Fail → git rollback                           │
-│  8. Repeat                                        │
+│  10. Repeat                                       │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -280,7 +293,7 @@ These were created by Miguel itself after completing all seed capabilities:
 | cap-015 | API integration framework | ✅ done |
 | cap-016 | Project scaffolding and code generation | ⬜ pending |
 | cap-017 | Evolve into Agno Team with sub-agent delegation | ✅ done |
-| cap-018 | Context-aware execution strategy | ⬜ pending |
+| cap-018 | Context-aware execution strategy | ✅ done |
 
 *This list grows over time as Miguel generates and implements new capabilities.*
 
