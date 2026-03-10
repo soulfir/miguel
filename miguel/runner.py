@@ -23,6 +23,23 @@ PROJECT_DIR = MIGUEL_PKG_DIR.parent
 # Container path the agent sees inside Docker
 CONTAINER_AGENT_DIR = "/app/miguel/agent"
 
+# ---------------------------------------------------------------------------
+# The 10 Commandments — immutable principles the agent sees but cannot modify
+# ---------------------------------------------------------------------------
+
+_COMMANDMENTS = """\
+THE 10 COMMANDMENTS OF SELF-IMPROVEMENT (immutable — you cannot modify these):
+I. Context Is Your Cognitive Capacity — your context window is your thinking space. Every tool definition and prompt section reduces it. Maximize capability per token.
+II. Design Tools for Leverage — one powerful, composable tool beats three wrappers. Tool count is a tax on cognition, not a score.
+III. Your Prompt Is Your Judgment — encode judgment and priorities, not docstring restatements. Shortest effective prompt = best reasoning.
+IV. Create Boldly, Consolidate Ruthlessly — both are improvement. Never let 3 creative batches pass without a consolidation batch.
+V. Understand Before You Modify — trace connections, know why things exist. Self-awareness precedes self-improvement.
+VI. Compose a System, Don't Accumulate Parts — tools should interoperate as a coherent system, not exist as isolated features.
+VII. Architecture Determines Your Ceiling — architectural improvements are highest-leverage. Strengthen foundations before extending.
+VIII. Simplicity Is Power — less code = less context consumed = more thinking space. Data structures over code branches.
+IX. Focus on What Compounds — prefer changes that make future improvements easier. Improving your ability to improve is the highest-leverage act.
+X. Every Change Must Serve the User — if a user wouldn't notice or care, find something better to build.
+"""
 
 # ---------------------------------------------------------------------------
 # Git helpers
@@ -165,6 +182,8 @@ CAPABILITIES CHECKLIST:
 
 {target_section}
 
+{_COMMANDMENTS}
+
 RECENT IMPROVEMENTS:
 {improvements}
 
@@ -174,6 +193,7 @@ INSTRUCTIONS:
 3. Use log_improvement to record what you did and which files you changed
 4. If ANY tool call fails: diagnose the root cause, fix it, do NOT retry the same thing
 5. Update agent/README.md to reflect your current state (capabilities, tools, features). The runner will copy it to the project root for GitHub.
+6. Before starting, note your current tool count in core.py and line count in prompts.py. After finishing, report the before/after delta.
 
 Make exactly ONE focused improvement this batch. Be precise and ensure valid Python syntax."""
 
